@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Pill Dispenser Analytics Portal</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #111827;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --primary: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            max-width: 500px;
+            width: 100%;
+            box-sizing: border-box;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+        }
+
+        h2 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+        .subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            margin-bottom: 20px;
+        }
+        .status-badge.connected { background-color: rgba(16, 185, 129, 0.1); color: var(--success); }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 6px;
+            text-align: center;
+        }
+        .stat-card.alert-highlight { border-color: var(--warning); background: rgba(245, 158, 11, 0.02); }
+        .stat-val { font-size: 22px; font-weight: 700; margin-bottom: 2px; }
+        .stat-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+
+        .config-ui { display: none; margin-top: 10px; text-align: left; }
+        label { font-size: 13px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px; }
+        
+        select, input[type="time"] {
+            width: 100%; padding: 12px; background-color: var(--bg-color);
+            border: 1px solid var(--border); border-radius: 8px; color: var(--text-main);
+            font-size: 15px; margin-bottom: 15px; box-sizing: border-box;
+        }
+
+        .time-card {
+            background-color: rgba(255,255,255,0.01); border: 1px solid var(--border);
+            padding: 10px 14px; border-radius: 8px; display: flex;
+            justify-content: space-between; align-items: center; margin-bottom: 10px;
+        }
+        .time-card label { margin: 0; color: var(--text-main); }
+        .time-card input { margin: 0; width: 120px; padding: 6px; }
+        
+        .btn-save { background-color: var(--success); }
+
+        .table-container {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .table-title { font-size: 18px; font-weight: 700; margin-bottom: 15px; color: var(--text-main); text-align: left; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        th, td { padding: 12px; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block; }
+        .badge.taken { background-color: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .badge.missed { background-color: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .badge.blocked { background-color: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Dispenser Analytics Hub</h2>
+        <div class="subtitle">Deterministic Tracking & Adherence Predictions</div>
+        
+        <div id="statusIndicator" class="status-badge">System Offline</div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div id="missedCounter" class="stat-val" style="color: var(--danger);">0</div>
+                <div class="stat-lbl">Missed</div>
+            </div>
+            <div class="stat-card">
+                <div id="batteryLevelDisplay" class="stat-val" style="color: var(--success);">--%</div>
+                <div class="stat-lbl">Battery</div>
+            </div>
+            <div class="stat-card alert-highlight">
+                <div id="predictionOutput" class="stat-val" style="color: var(--warning); font-size: 13px; padding-top: 4px;">Awaiting Data...</div>
+                <div class="stat-lbl" style="margin-top: 4px;">Forecast</div>
+            </div>
+        </div>
+        
+        <button id="pairingBtn" onclick="initiateBleConnection()">Connect to Dispenser</button>
+
+        <div id="controlPanel" class="config-ui">
+            <label for="doseSelect">Daily Dosage Frequency Profile:</label>
+            <select id="doseSelect" onchange="renderDynamicTimeRows()">
+                <option value="1">1 Dose / Day</option>
+                <option value="2" selected>2 Doses / Day</option>
+                <option value="3">3 Doses / Day</option>
+                <option value="4">4 Doses / Day</option>
+                <option value="5">5 Doses / Day</option>
+                <option value="6">6 Doses / Day</option>
+            </select>
+
+            <div id="dynamicTimeContainer"></div>
+            <button class="btn-save" onclick="transmitConfigurationMatrix()">Update Schedule</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div class="table-title">Live Adherence Stream</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Log Status</th>
+                </tr>
+            </thead>
+            <tbody id="logTableBody">
+                <tr id="placeholderRow"><td colspan="2" style="color: var(--text-muted); text-align: center; padding: 20px;">No transaction records received yet.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const TARGET_SERVICE_UUID = "4fafc201-1fb5-459e-92eb-6fdcc02147e9";
+        const TARGET_CHAR_UUID    = "2002927b-7e2b-4d1a-8fc3-1d0c4ca672b2";
+        
+        let targetCharacteristic = null;
+        let connectedPeripheral = null;
+
+        async function initiateBleConnection() {
+            const statusLabel = document.getElementById("statusIndicator");
+            try {
+                connectedPeripheral = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: "Tejas_Pill_Dispenser" }],
+                    optionalServices: [TARGET_SERVICE_UUID]
+                });
+
+                statusLabel.innerText = "Connecting...";
+                const gattServer = await connectedPeripheral.gatt.connect();
+                const primaryService = await gattServer.getPrimaryService(TARGET_SERVICE_UUID);
+                targetCharacteristic = await primaryService.getCharacteristic(TARGET_CHAR_UUID);
+
+                await targetCharacteristic.startNotifications();
+                targetCharacteristic.addEventListener('characteristicvaluechanged', handleTelemetryIncoming);
+
+                statusLabel.innerText = "Telemetry Link Active";
+                statusLabel.className = "status-badge connected";
+                document.getElementById("pairingBtn").style.display = "none";
+                document.getElementById("controlPanel").style.display = "block";
+                
+                renderDynamicTimeRows();
+                await synchronizeDeviceClock();
+            } catch (fault) {
+                console.error(fault);
+                alert("BLE pairing aborted.");
+            }
+        }
+
+        function handleTelemetryIncoming(event) {
+            const decoder = new TextDecoder();
+            const rawString = decoder.decode(event.target.value);
+            console.log("Telemetry Received: " + rawString);
+
+            if (rawString.startsWith("DATA:")) {
+                const tokens = rawString.split(":");
+                const missedVal = parseInt(tokens[1], 10);
+                const lastEvent = tokens[2];
+                const batteryPct = parseInt(tokens[3], 10); 
+
+                // 1. Update Counter Card
+                document.getElementById("missedCounter").innerText = missedVal;
+
+                // 2. Parse and Update Battery Status Display Card
+                if (!isNaN(batteryPct)) {
+                    document.getElementById("batteryLevelDisplay").innerText = batteryPct + "%";
+                    if (batteryPct < 20) {
+                        document.getElementById("batteryLevelDisplay").style.color = "var(--danger)";
+                    } else {
+                        document.getElementById("batteryLevelDisplay").style.color = "var(--success)";
+                    }
+                }
+
+                // 3. Mount Data Entry Row to Stream DOM Elements Table
+                appendDataRow(lastEvent);
+
+                // 4. Run Behavioral Adherence Forecast Pipeline
+                const outputField = document.getElementById("predictionOutput");
+                if (missedVal === 0) {
+                    outputField.innerText = "Excellent (99%)";
+                    outputField.style.color = "var(--success)";
+                } else if (missedVal === 1) {
+                    outputField.innerText = "Stable (85%)";
+                    outputField.style.color = "var(--warning)";
+                } else if (missedVal >= 2 && missedVal < 4) {
+                    outputField.innerText = "Risk Warning (60%)";
+                    outputField.style.color = "var(--warning)";
+                } else {
+                    outputField.innerText = "Non-Adherent (<40%)";
+                    outputField.style.color = "var(--danger)";
+                }
+            }
+        }
+
+        function appendDataRow(statusText) {
+            const tbody = document.getElementById("logTableBody");
+            const placeholder = document.getElementById("placeholderRow");
+            if (placeholder) placeholder.remove();
+
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+            
+            let badgeClass = "badge";
+            if (statusText === "TAKEN") badgeClass += " taken";
+            else if (statusText === "MISSED") badgeClass += " missed";
+            else if (statusText === "BLOCKED") badgeClass += " blocked";
+
+            const newRow = document.createElement("tr");
+            newRow.innerHTML = `
+                <td>${timeStr}</td>
+                <td><span class="${badgeClass}">${statusText}</span></td>
+            `;
+            tbody.insertBefore(newRow, tbody.firstChild);
+        }
+
+        async function synchronizeDeviceClock() {
+            if (!targetCharacteristic) return;
+            const localClock = new Date();
+            const payload = `TIME:${String(localClock.getHours()).padStart(2,'0')}:${String(localClock.getMinutes()).padStart(2,'0')}`;
+            await targetCharacteristic.writeValue(new TextEncoder().encode(payload));
+        }
+
+        function renderDynamicTimeRows() {
+            const requestedSlots = parseInt(document.getElementById("doseSelect").value);
+            const listContainer = document.getElementById("dynamicTimeContainer");
+            listContainer.innerHTML = "";
+            
+            for (let idx = 1; idx <= requestedSlots; idx++) {
+                let standardVal = "12:00";
+                if (idx === 1) standardVal = "09:00";
+                if (idx === 2 && requestedSlots === 2) standardVal = "21:00";
+                
+                listContainer.innerHTML += `
+                    <div class="time-card">
+                        <label>Dose Slot #${idx}</label>
+                        <input type="time" id="timeValue${idx}" value="${standardVal}">
+                    </div>`;
+            }
+        }
+
+        async function transmitConfigurationMatrix() {
+            if (!targetCharacteristic) return;
+            const totalSlots = document.getElementById("doseSelect").value;
+            let protocolPayload = `CONFIG:${totalSlots}`;
+            for (let idx = 1; idx <= totalSlots; idx++) {
+                const clockInput = document.getElementById(`timeValue${idx}`).value;
+                const subTokens = clockInput.split(":");
+                protocolPayload += `:${parseInt(subTokens[0], 10)}:${parseInt(subTokens[1], 10)}`;
+            }
+            await targetCharacteristic.writeValue(new TextEncoder().encode(protocolPayload));
+            alert("Schedule profile overwritten successfully.");
+        }
+    </script>
+</body>
+</html>
