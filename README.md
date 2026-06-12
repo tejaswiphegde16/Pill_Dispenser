@@ -1,6 +1,6 @@
 paste this code in arduino ino and upload it to esp c6 
 
-
+```
 #include <Arduino.h>
 #include <BLEDevice.h>
 #include <BLEUtils.h>
@@ -276,5 +276,6 @@ void sendDataToApp(String eventStatus) {
   Serial.print("[BLE Transmit Telemetry Matrix]: ");
   Serial.println(jsonPayload);
 }
+```
 
 later run index.html file to connect to app
